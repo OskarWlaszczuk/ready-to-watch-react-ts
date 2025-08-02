@@ -1,0 +1,16 @@
+{
+  "files": {
+    "main.css": "/ready-to-watch-react-ts/static/css/main.f855e6bc.css",
+    "main.js": "/ready-to-watch-react-ts/static/js/main.6bf77168.js",
+    "static/js/488.14397a65.chunk.js": "/ready-to-watch-react-ts/static/js/488.14397a65.chunk.js",
+    "static/media/logo.svg": "/ready-to-watch-react-ts/static/media/logo.6ce24c58023cc2f8fd88fe9d219db6c6.svg",
+    "index.html": "/ready-to-watch-react-ts/index.html",
+    "main.f855e6bc.css.map": "/ready-to-watch-react-ts/static/css/main.f855e6bc.css.map",
+    "main.6bf77168.js.map": "/ready-to-watch-react-ts/static/js/main.6bf77168.js.map",
+    "488.14397a65.chunk.js.map": "/ready-to-watch-react-ts/static/js/488.14397a65.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.f855e6bc.css",
+    "static/js/main.6bf77168.js"
+  ]
+}
