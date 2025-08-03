@@ -15,8 +15,9 @@ export const GlobalStyles = createGlobalStyle`
     };
 
     #root {
-    font-family: "Rubik", sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+        height: 100vh;
+        font-family: "Rubik", sans-serif;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
     };
 `;
