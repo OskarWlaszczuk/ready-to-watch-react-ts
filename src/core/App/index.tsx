@@ -1,14 +1,16 @@
 import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
-import { NavPanel } from "./NavPanel";
+import { Movies } from "../../features/movies";
+import { Layout } from "./Layout";
 
 export const App = () => {
   return (
     <HashRouter>
-      <NavPanel />
       <Routes>
-        {/* <Route path="*" element={<Navigate to={listRoutes.movies} />} /> */}
+        <Route path="/" element={<Layout />}>
+          <Route path="movies" element={<Movies />} />
+          <Route path="*" element={<Navigate to="/movies" />} />
+        </Route>
       </Routes>
     </HashRouter>
-
   );
 };
