@@ -10,7 +10,9 @@ export const theme = {
             shadowWhite: "#00000006",
             gallery: "#F0F0F0",
         },
-        gray:"#838383",
+        gray: "#838383",
+        doveGray: "#646464",
+        mercury: "#E8E8E8",
     },
     breakpoints: {
         mobileXS: "320px",
