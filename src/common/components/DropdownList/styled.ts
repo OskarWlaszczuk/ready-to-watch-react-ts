@@ -12,7 +12,7 @@ export const ListLabel = styled.div`
     gap: 5px;
     justify-items: center;
     color:${({ theme }) => theme.colors.doveGray};
-    background-color: transparent;
+    background-color: ${({ theme }) => theme.colors.white};
     border: 1px solid ${({ theme }) => theme.colors.mercury};
     border-radius: 12px;
     padding: 3px 7px;
@@ -27,6 +27,7 @@ export const ListLabel = styled.div`
 
 export const ListOptions = styled.ul`
     position: absolute;
+        background-color: ${({ theme }) => theme.colors.white};
     /* top: 100%; */
     /* left: 0; */
     /* right: 0; */
