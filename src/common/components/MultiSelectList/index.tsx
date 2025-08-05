@@ -1,20 +1,17 @@
 import { useState } from "react";
-import { ListOptionType } from "../../types/FilterOption";
+import { ListOptionType } from "../../types/ListOptionType";
 import { ExpandOptionsButton, ListName, ListOption, ListOptions, StyledMultiSelectList } from "./styled"
 import { capitalizeFirstLetter } from "../../functions/capitilizeFirstLetter";
 import { Arrow } from "../DropdownList/styled";
 import { useUpdateQueryParams } from "./useUpdateQueryParams";
+import { ListConfig } from "../../types/ListConfig";
 
-export interface MultiSelectListProps {
-    listName: string;
-    listOptions: ListOptionType[];
-    listQueryKey: string;
-}
+export interface MultiSelectListProps extends ListConfig { }
 
-export const MultiSelectList = ({ listName, listOptions, listQueryKey }: MultiSelectListProps) => {
+export const MultiSelectList = ({ label, options, queryKey }: MultiSelectListProps) => {
     const [showAllOptions, setShowAllOptions] = useState(false)
-    const sliceCount = !showAllOptions ? listOptions?.length / 2 : undefined
-    const { currentListParams, updateQueryParams } = useUpdateQueryParams(listQueryKey);
+    const sliceCount = !showAllOptions ? options?.length / 2 : undefined
+    const { currentListParams, updateQueryParams } = useUpdateQueryParams(queryKey);
     const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -24,14 +21,14 @@ export const MultiSelectList = ({ listName, listOptions, listQueryKey }: MultiSe
                 onClick={() => setIsOpen(boolean => !boolean)}
             >
                 <Arrow $open={isOpen} />
-                {capitalizeFirstLetter(listName)}
+                {capitalizeFirstLetter(label)}
             </ListName>
             {
                 isOpen && (
                     <>
                         <ListOptions>
                             {
-                                listOptions?.slice(sliceCount).map(({ queryValue, label }) => (
+                                options?.slice(sliceCount).map(({ queryValue, label }) => (
                                     <ListOption
                                         $activeOption={currentListParams.includes(queryValue)}
                                         key={queryValue}

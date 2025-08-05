@@ -1,15 +1,11 @@
 import { useState } from "react";
 import { Arrow, ListOption, ListLabel, StyledDropdownList, ListOptions } from "./styled";
 import { useSearchParams } from "react-router-dom";
-import { FilterOption } from "../../types/FilterOption";
+import { ListOptionType } from "../../types/ListOptionType";
 import { useUpdateQueryParam } from "../../hooks/useUpdateQueryParam";
+import { ListConfig } from "../../types/ListConfig";
 
-
-export interface DropdownListProps {
-    options: FilterOption[];
-    queryKey: string;
-    label: string;
-}
+export interface DropdownListProps extends ListConfig { }
 
 export const DropdownList = ({ options, queryKey, label }: DropdownListProps) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -23,7 +19,7 @@ export const DropdownList = ({ options, queryKey, label }: DropdownListProps) =>
 
     const onListClick = () => setIsOpen(boolean => !boolean);
 
-    const onOptionChange = (newQueryValue: FilterOption["queryValue"]) => {
+    const onOptionChange = (newQueryValue: ListOptionType["queryValue"]) => {
         updateQueryParam(newQueryValue, queryKey);
         setIsOpen(false);
     };
