@@ -2,17 +2,13 @@ import { useSearchParams } from "react-router-dom";
 import { DropdownList, DropdownListProps } from "../../../common/components/DropdownList";
 import { TabConfig, TabsPanel } from "../../../common/components/TabsPanel";
 import { ListOptionType } from "../../../common/types/FilterOption";
-import { ListSection, ListTitle, StyledMoviesList } from "./styled"
+import { ListSection, StyledMoviesList } from "./styled"
 import { useMediaList } from "./useMovieList";
 import { MediaGrid } from "../../../common/components/MediaGrid";
 import { MovieListItem } from "../../../common/types/TmdbTypes/mediaListItem.types";
-import { MediaListResponse, MovieListResponse } from "../../../common/types/TmdbTypes/mediaListResponse.types";
-import { Sidebar } from "../../../common/components/Sidebar";
+import { MovieListResponse } from "../../../common/types/TmdbTypes/mediaListResponse.types";
 import { SectionTitle } from "../../../common/components/SectionTitle";
-import { useGenresQuery } from "../../../common/hooks/useGenresQuery";
-import { capitalizeFirstLetter } from "../../../common/functions/capitilizeFirstLetter";
-import { formatToQueryParam } from "../../../common/functions/formatToQueryParam";
-import { MultiSelectList } from "../../../common/components/MultiSelectList";
+import { MovieListSidebar } from "./MovieListSidebar";
 
 const getDecadeOptions = () => {
     const decades = [
@@ -66,7 +62,6 @@ export const MoviesLists = () => {
         listType: listTypeParam || "popular",
         queryParams: { page: "1" }
     });
-    const genresQuery = useGenresQuery();
 
     console.log(movieListQuery);
 
@@ -78,7 +73,7 @@ export const MoviesLists = () => {
         },
     ];
 
-    if (!movieListQuery.data && !genresQuery.genres) return null;
+    if (!movieListQuery.data) return null;
 
     const tabsSectionsConfig: TabConfig[] = [
         {
@@ -119,35 +114,9 @@ export const MoviesLists = () => {
         },
     ];
 
-    const genreOptions: ListOptionType[] = genresQuery.genres?.map(({ name }) => ({ label: capitalizeFirstLetter(name), queryValue: formatToQueryParam(name) }))!;
-
-    const sidebarFiltersConfig = [
-        {
-            listName: "genres",
-            listOptions: genreOptions,
-            listQueryKey: "genres",
-        },
-        {
-            listName: "genres",
-            listOptions: genreOptions,
-            listQueryKey: "genres",
-        },
-        {
-            listName: "genres",
-            listOptions: genreOptions,
-            listQueryKey: "genres",
-        }
-    ];
-
-    const sidebarFilters = (
-        sidebarFiltersConfig.map(config => (
-            <MultiSelectList {...config} key={config.listName} />
-        ))
-    );
-
     return (
         <StyledMoviesList>
-            <Sidebar title="Filters" content={<>{sidebarFilters}</>} />
+            <MovieListSidebar />
             <ListSection>
                 <SectionTitle>Movies Lists</SectionTitle>
                 <TabsPanel
