@@ -1,6 +1,12 @@
-import { DropdownList, FilterOption } from "../../../common/components/DropdownList";
-import { ListTab, ListTabsPanel, ListTitle } from "./styled"
+import { useSearchParams } from "react-router-dom";
+import { DropdownList, DropdownListProps } from "../../../common/components/DropdownList";
+import { TabConfig, TabsPanel } from "../../../common/components/TabsPanel";
+import { FilterOption } from "../../../common/types/FilterOption";
+import {  ListTitle } from "./styled"
 import { useMediaList } from "./useMovieList";
+import { MediaGrid } from "../../../common/components/MediaGrid";
+import { MovieListItem } from "../../../common/types/TmdbTypes/mediaListItem.types";
+import { MediaListResponse, MovieListResponse } from "../../../common/types/TmdbTypes/mediaListResponse.types";
 
 const getDecadeOptions = () => {
     const decades = [
@@ -16,47 +22,94 @@ const getDecadeOptions = () => {
     return decadeOptions;
 };
 
+interface MediaListSectionProps {
+    filtersConfig: DropdownListProps[];
+    movieListResponse: MovieListResponse;
+}
+
+const extractMovieProps = (movie: MovieListItem) => ({
+    imagePath: movie.poster_path,
+    name: movie.title,
+    detailsRoute: `/movie/${movie.id}`,
+});
+
+const MovieListSection = ({ filtersConfig, movieListResponse }: MediaListSectionProps) => {
+    return (
+        <>
+            {
+                filtersConfig.map(config => (
+                    <DropdownList
+                        key={config.label}
+                        {...config}
+                    />
+                ))
+            }
+            <MediaGrid mediaList={movieListResponse.results} extractTileProps={extractMovieProps} />
+        </>
+    );
+};
+
 export const MoviesLists = () => {
 
     const decadeOptions = getDecadeOptions();
+    const [searchParams] = useSearchParams();
+    const listTypeParam = searchParams.get("tab")!;
 
-    const movieList = useMediaList({ mediaType: "movie", listType: "popular", queryParams: { page: "1" } });
+    const movieListQuery = useMediaList({
+        mediaType: "movie",
+        listType: listTypeParam || "popular",
+        queryParams: { page: "1" }
+    });
 
+    console.log(movieListQuery);
 
-    const listTabsConfig = [
+    const movieFiltersConfig = [
+        {
+            options: decadeOptions,
+            queryKey: "decades",
+            label: "Decade",
+        },
+    ];
+
+    if (!movieListQuery.data) return null;
+
+    const tabsSectionsConfig: TabConfig[] = [
         {
             label: "Popular",
+            view: (
+                <>
+                    <MovieListSection filtersConfig={movieFiltersConfig} movieListResponse={movieListQuery.data} />
+                </>
+            ),
+            queryParam: "popular",
         },
         {
             label: "Top Rated",
+            view: (
+                <>
+                    <MovieListSection filtersConfig={movieFiltersConfig} movieListResponse={movieListQuery.data} />
+                </>
+            ),
+            queryParam: "top_rated",
         },
         {
             label: "Upcoming",
-        },
-        {
-            label: "Now Playing",
+            view: (
+                <>
+                    <MovieListSection filtersConfig={movieFiltersConfig} movieListResponse={movieListQuery.data} />
+                </>
+            ),
+            queryParam: "upcoming",
         },
     ];
+
 
     return (
         <section>
             <ListTitle>Movies Lists</ListTitle>
-            <ListTabsPanel>
-                {
-                    listTabsConfig.map(({ label }) => (
-                        <ListTab key={label}>
-                            {label}
-                        </ListTab>
-                    ))
-                }
-            </ListTabsPanel>
-            <div>
-                <DropdownList
-                    options={decadeOptions}
-                    queryKey={"decade"}
-                    label="Decade"
-                />
-            </div>
+            <TabsPanel
+                tabsConfig={tabsSectionsConfig}
+            />
         </section>
     );
 };
