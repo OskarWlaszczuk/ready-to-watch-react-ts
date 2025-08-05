@@ -2,7 +2,7 @@ import { useSearchParams } from "react-router-dom";
 import { DropdownList, DropdownListProps } from "../../../common/components/DropdownList";
 import { TabConfig, TabsPanel } from "../../../common/components/TabsPanel";
 import { FilterOption } from "../../../common/types/FilterOption";
-import {  ListTitle } from "./styled"
+import { ListTitle, StyledMoviesList } from "./styled"
 import { useMediaList } from "./useMovieList";
 import { MediaGrid } from "../../../common/components/MediaGrid";
 import { MovieListItem } from "../../../common/types/TmdbTypes/mediaListItem.types";
@@ -105,11 +105,11 @@ export const MoviesLists = () => {
 
 
     return (
-        <section>
+        <StyledMoviesList>
             <ListTitle>Movies Lists</ListTitle>
             <TabsPanel
                 tabsConfig={tabsSectionsConfig}
             />
-        </section>
+        </StyledMoviesList>
     );
 };
