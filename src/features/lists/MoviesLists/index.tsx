@@ -1,32 +1,21 @@
 import { useSearchParams } from "react-router-dom";
-import { DropdownList, DropdownListProps } from "../../../common/components/DropdownList";
 import { TabConfig, TabsPanel } from "../../../common/components/TabsPanel";
-import { ListOptionType } from "../../../common/types/FilterOption";
 import { ListSection, StyledMoviesList } from "./styled"
 import { useMediaList } from "./useMovieList";
 import { MediaGrid } from "../../../common/components/MediaGrid";
 import { MovieListItem } from "../../../common/types/TmdbTypes/mediaListItem.types";
-import { MovieListResponse } from "../../../common/types/TmdbTypes/mediaListResponse.types";
 import { SectionTitle } from "../../../common/components/SectionTitle";
 import { MovieListSidebar } from "./MovieListSidebar";
-
-const getDecadeOptions = () => {
-    const decades = [
-        "2020s", "2010s", "2000s", "1990s", "1980s", "1970s",
-        "1960s", "1950s", "1940s", "1930s", "1920s", "1910s",
-        "1900s", "1890s", "1880s", "1870s"
-    ];
-
-    const decadeOptions: ListOptionType[] = [
-        ...decades.map(decade => ({ queryValue: decade, label: decade }))
-    ];
-
-    return decadeOptions;
-};
-
+import { MovieList } from "../../../common/types/TmdbTypes/mediaList.types";
+import { useFilterMovies } from "./useFilterMovies";
+import { FiltersPanel } from "../../../common/components/Filter";
+import { useGenresFilterConfig } from "../../../common/hooks/useGenresFilterConfig";
+import { useDecadeFilterConfig } from "../../../common/hooks/useDecadeFilterConfig";
+import { FilterConfig } from "../../../common/types/FilterConfig";
+import { OrUndefined } from "../../../common/types/OrUndefined";
 interface MediaListSectionProps {
-    filtersConfig: DropdownListProps[];
-    movieListResponse: MovieListResponse;
+    filtersConfig: FilterConfig[];
+    movieListResponse: MovieList;
 }
 
 const extractMovieProps = (movie: MovieListItem) => ({
@@ -38,81 +27,102 @@ const extractMovieProps = (movie: MovieListItem) => ({
 const MovieListSection = ({ filtersConfig, movieListResponse }: MediaListSectionProps) => {
     return (
         <>
-            {
-                filtersConfig.map(config => (
-                    <DropdownList
-                        key={config.label}
-                        {...config}
-                    />
-                ))
-            }
-            <MediaGrid mediaList={movieListResponse?.results} extractTileProps={extractMovieProps} />
+            <FiltersPanel filtersConfig={filtersConfig} />
+            <MediaGrid mediaList={movieListResponse} extractTileProps={extractMovieProps} />
         </>
     );
 };
 
-export const MoviesLists = () => {
 
-    const decadeOptions = getDecadeOptions();
+const useTopRatedTabConfig = (moviesList: OrUndefined<MovieList>): TabConfig => {
+    const decadeFilterConfig = useDecadeFilterConfig();
+
+    const filtersConfig = [decadeFilterConfig];
+    const moviesToDisplay = useFilterMovies(moviesList, filtersConfig);
+
+    const topRatedTabConfig = {
+        label: "Top Rated",
+        view: (
+            <>
+                <MovieListSection
+                    filtersConfig={filtersConfig}
+                    movieListResponse={moviesToDisplay}
+                />
+            </>
+        ),
+        queryParam: "top_rated",
+    };
+
+    return topRatedTabConfig;
+};
+
+const usePopularTabConfig = (moviesList: OrUndefined<MovieList>): TabConfig => {
+    const genresFilterConfig = useGenresFilterConfig();
+
+    const filtersConfig = [genresFilterConfig];
+    const moviesToDisplay = useFilterMovies(moviesList, filtersConfig);
+
+    const popularTabConfig = {
+        label: "Popular",
+        view: (
+            <>
+                <MovieListSection
+                    filtersConfig={filtersConfig}
+                    movieListResponse={moviesToDisplay}
+                />
+            </>
+        ),
+        queryParam: "popular",
+    };
+
+    return popularTabConfig;
+};
+
+
+const useUpcomingTabConfig = (moviesList: OrUndefined<MovieList>): TabConfig => {
+    const genresFilterConfig = useGenresFilterConfig();
+
+    const filtersConfig = [genresFilterConfig];
+    const moviesToDisplay = useFilterMovies(moviesList, filtersConfig);
+
+    const upcomingTabConfig = {
+        label: "Upcoming",
+        view: (
+            <>
+                <MovieListSection
+                    filtersConfig={filtersConfig}
+                    movieListResponse={moviesToDisplay}
+                />
+            </>
+        ),
+        queryParam: "upcoming",
+    };
+
+    return upcomingTabConfig;
+};
+
+export const useMoviesListsTabsConfig = (): TabConfig[] => {
+
     const [searchParams] = useSearchParams();
-    const listTypeParam = searchParams.get("tab")!;
+    const listTypeParam = searchParams.get("tab") || "popular";
 
     const movieListQuery = useMediaList({
         mediaType: "movie",
-        listType: listTypeParam || "popular",
+        listType: listTypeParam,
         queryParams: { page: "1" }
     });
 
-    console.log(movieListQuery);
+    const moviesList = movieListQuery.data?.results;
 
-    const movieFiltersConfig = [
-        {
-            options: decadeOptions,
-            queryKey: "decades",
-            label: "Decade",
-        },
-    ];
+    const topRatedTabConfig = useTopRatedTabConfig(moviesList);
+    const popularTabConfig = usePopularTabConfig(moviesList);
+    const upcomingTabConfig = useUpcomingTabConfig(moviesList);
 
-    if (!movieListQuery.data) return null;
+    return [topRatedTabConfig, popularTabConfig, upcomingTabConfig];
+};
 
-    const tabsSectionsConfig: TabConfig[] = [
-        {
-            label: "Popular",
-            view: (
-                <>
-                    <MovieListSection filtersConfig={movieFiltersConfig} movieListResponse={movieListQuery.data!} />
-                </>
-            ),
-            queryParam: "popular",
-        },
-        {
-            label: "Top Rated",
-            view: (
-                <>
-                    <MovieListSection filtersConfig={movieFiltersConfig} movieListResponse={movieListQuery.data!} />
-                </>
-            ),
-            queryParam: "top_rated",
-        },
-        {
-            label: "Upcoming",
-            view: (
-                <>
-                    <MovieListSection filtersConfig={movieFiltersConfig} movieListResponse={movieListQuery.data!} />
-                </>
-            ),
-            queryParam: "upcoming",
-        },
-        {
-            label: "Upcoming",
-            view: (
-                <>
-                    <MovieListSection filtersConfig={movieFiltersConfig} movieListResponse={movieListQuery.data!} />
-                </>
-            ),
-            queryParam: "upcoming",
-        },
-    ];
+export const MoviesLists = () => {
+    const moviesListsTabsConfig = useMoviesListsTabsConfig();
 
     return (
         <StyledMoviesList>
@@ -120,7 +130,7 @@ export const MoviesLists = () => {
             <ListSection>
                 <SectionTitle>Movies Lists</SectionTitle>
                 <TabsPanel
-                    tabsConfig={tabsSectionsConfig}
+                    tabsConfig={moviesListsTabsConfig}
                 />
             </ListSection>
         </StyledMoviesList>
