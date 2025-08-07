@@ -1,14 +1,17 @@
 import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
-import { Movies } from "../../features/movies";
 import { Layout } from "./Layout";
+import { Explore } from "../../features/MediaTabs";
+import { Preferences } from "../../features/preferences/Preferences";
 
 export const App = () => {
   return (
     <HashRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route path="movies" element={<Movies />} />
-          <Route path="*" element={<Navigate to="/movies" />} />
+          <Route index element={<Navigate to="explore/" replace />} />
+          <Route path="explore/" element={<Explore />} />
+          <Route path="preferences/" element={<Preferences />} />
+          <Route path="*" element={<Navigate to="explore/" replace />} />
         </Route>
       </Routes>
     </HashRouter>
