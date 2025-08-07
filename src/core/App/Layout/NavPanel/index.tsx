@@ -4,18 +4,13 @@ export const NavPanel = () => {
     const navItemsConfig = [
         {
             icon: "🎬",
-            label: "home",
-            routePath: "route"
+            label: "Explore",
+            routePath: "explore/"
         },
         {
-            icon: "🎬",
-            label: "home",
-            routePath: "route"
-        },
-        {
-            icon: "🎬",
-            label: "home",
-            routePath: "route"
+            icon: "",
+            label: "Preferences",
+            routePath: "preferences/"
         },
     ];
 
