@@ -21,7 +21,7 @@ export const useDiscoverMovies = ({ endpointQueryParams }: UseDiscoverMoviesProp
 
     const { status, data, isPaused } = useQuery<MovieListResponse>({
         queryKey: ["discover movies", endpointQueryParams],
-        queryFn: () => fetchApi(`discover/movie?${queryParamsString}`),
+        queryFn: () => fetchApi(`/movieDiscover.json`),
     });
 
     return {
