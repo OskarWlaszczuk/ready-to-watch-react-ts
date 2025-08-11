@@ -4,6 +4,7 @@ export const theme = {
         mineShaft: "#202020",
         white: "#ffffffff",
         seance: "#9C2BAD",
+        carouselPink:"#FCEFFC",
         mystic: "#0000000f",
         silver: "#BBBBBB",
         hover: {
@@ -13,6 +14,7 @@ export const theme = {
         gray: "#838383",
         doveGray: "#646464",
         mercury: "#E8E8E8",
+        alabaster: "#F9F9F9",
     },
     breakpoints: {
         mobileXS: "320px",
