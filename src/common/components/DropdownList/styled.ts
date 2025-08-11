@@ -31,7 +31,7 @@ export const ListOptions = styled.ul`
     /* top: 100%; */
     /* left: 0; */
     /* right: 0; */
-    box-shadow: 0 0 1px 0 rgb(0, 0, 0, .2667), 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -2px rgba(0, 0, 0, .1);
+    box-shadow: 0 0 1px 0 rgb(0, 0, 0, .2667), 0 4px 6px -1px #0000001a, 0 2px 4px -2px rgba(0, 0, 0, .1);
     border-radius: 6px;
     margin: 4px 0 0 0;
     padding: 0;
