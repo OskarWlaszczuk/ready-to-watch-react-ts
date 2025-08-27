@@ -19,6 +19,7 @@
     "express-flash": "^0.0.2",
     "express-session": "^1.18.2",
     "gh-pages": "^6.3.0",
+    "jsonwebtoken": "^9.0.2",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "pg": "^8.16.3",
@@ -62,6 +63,7 @@
   },
   "devDependencies": {
     "eslint-config-prettier": "^10.1.5",
+    "http-proxy-middleware": "^3.0.5",
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2"
   }
