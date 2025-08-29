@@ -13,53 +13,62 @@ const generateAccessToken = (userPayload) => {
     return accessToken;
 };
 
-//refresh token trzymać w bazie danych
-let refreshTokens = [];
+const refreshToken = async (request, response) => {
+    console.log("refreshing token...");
+    const { nickname } = request.user;
+    const accessToken = generateAccessToken({ nickname });
 
-const refreshToken = (request, response) => {
-    const refreshToken = request.body.token;
-    if (refreshToken == null) return response.sendStatus(401);
-    if (!refreshTokens.includes(refreshToken)) return response.sendStatus(403);
-
-    //tutaj wyciągać refresh token z bazy danych
-
-    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (error, userPayload) => {
-        if (error) return response.sendStatus(403);
-        const accessToken = generateAccessToken({ id: userPayload.id });
-        response.json({ accessToken });
-    });
+    response.status(200).json({ accessToken });
 };
 
 const register = async (request, response) => {
     const { nickname, password } = request.body;
 
     try {
-        const user = await pool.query(
-            "SELECT nickname, id FROM users WHERE nickname = $1",
+        const result = await pool.query(
+            "SELECT nickname FROM users WHERE nickname = $1",
             [nickname]
         );
-        const isUserAvailable = user.rows.length > 0;
 
-        if (isUserAvailable) {
+        const isUserExists = result.rows.length > 0;
+        if (isUserExists) {
             return response.status(400).json({ success: false, message: "User already exists" });
         }
 
+        const userPayload = { nickname };
+
+        const accessToken = generateAccessToken(userPayload);
+        const refreshToken = jwt.sign(userPayload, process.env.REFRESH_TOKEN_SECRET);
+
+        const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
         const hashedPassword = await bcrypt.hash(password, 10);
+
         const newUser = await pool.query(
-            "INSERT INTO users (nickname, password) VALUES($1, $2) RETURNING nickname",
-            [nickname, hashedPassword]
+            "INSERT INTO users (nickname, password, refresh_token_hash) VALUES($1, $2, $3) RETURNING nickname",
+            [nickname, hashedPassword, hashedRefreshToken]
         );
 
-        response.json({ success: true, user: newUser });
+        response
+            .status(201)
+            .json({ success: true, user: newUser, accessToken, refreshToken });
     } catch (error) {
+        console.log(error);
         response
             .status(500)
-            .json({ success: false, message: "User not created" });
+            .json({ success: false, message: "Internal serveer error" });
     }
 };
 
-const logout = (request, response) => {
-    refreshTokens = refreshTokens.filter(token => token !== request.body.token);
+const logout = async (request, response) => {
+    console.log("loagoutting user...");
+    const { nickname } = request.user;
+
+    await pool.query(
+        "UPDATE users SET refresh_token_hash = NULL WHERE nickname = $1",
+        [nickname]
+    );
+
+    console.log("user logouted");
     response.sendStatus(204);
 };
 
@@ -67,26 +76,36 @@ const login = async (request, response) => {
     const { nickname, password } = request.body;
 
     try {
-        const selectedUser = await pool.query(
+        const result = await pool.query(
             "SELECT * FROM users WHERE nickname = $1",
             [nickname]
         );
 
-        if (selectedUser.rows.length === 0) {
-            return response.status(401).json({ success: false, message: "User not found" });
+        const isUserExists = result.rows.length > 0;
+        if (!isUserExists) {
+            return response
+                .status(400)
+                .json({ success: false, message: "User doesn't exist" });
         }
 
-        const isValidPassword = await bcrypt.compare(password, selectedUser.rows[0].password);
+        const isValidPassword = await bcrypt.compare(password, result.rows[0].password);
         if (!isValidPassword) {
-            return response.status(401).json({ success: false, message: "Invalid password" });
+            return response
+                .status(401)
+                .json({ success: false, message: "Invalid password" });
         }
 
-        const userPayload = { id: selectedUser.rows[0].id, };
+        const userPayload = { nickname: result.rows[0].nickname };
+
         const accessToken = generateAccessToken(userPayload);
         const refreshToken = jwt.sign(userPayload, process.env.REFRESH_TOKEN_SECRET);
+        const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
 
-        //dodawać refesh token do bazy danych!
-        refreshTokens.push(refreshToken);
+        await pool.query(
+            "UPDATE users SET refresh_token_hash = $1 WHERE nickname = $2",
+            [hashedRefreshToken, nickname]
+        );
+
         response.json({ accessToken, refreshToken });
     } catch (error) {
         console.error(error);
