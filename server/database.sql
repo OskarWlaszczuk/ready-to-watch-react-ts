@@ -4,5 +4,6 @@ CREATE TABLE users(
     id SERIAL PRIMARY KEY,      
     nickname VARCHAR(50) NOT NULL,
     password TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT NOW(),
+    refresh_token_hash VARCHAR(350)
 );
