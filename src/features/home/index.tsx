@@ -1,38 +1,46 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useState } from "react";
-import { TabConfig } from "../../common/components/TabsPanel"
-import { Movies } from "../lists/Movies"
-import axios from "axios";
-import { authApiPublic, authApiSecure, userApi } from "../../common/constants/api";
-import { response } from "express";
-
+import { authApiSecure, userApi } from "../../common/constants/api";
 export const AuthContext = createContext(null);
+
 //@ts-ignore
-export const AuthProvider = ({ children }) => {
-    const [accessToken, setAccessToken] = useState(null);
-    const [user, setUser] = useState(null);
+const refreshAccessToken = async (setAccessToken) => {
+    try {
+        const refreshResponse = await authApiSecure.post("/refresh");
+        const newToken = refreshResponse.data.accessToken;
+        setAccessToken(newToken);
+    } catch (err) {
+        setAccessToken(null);
+    }
+};
+
+//@ts-ignore
+const useInitializeAuth = (accessToken, setAccessToken) => {
+    //@ts-ignore
     const [isInitialized, setIsInitialized] = useState(false);
 
     const isSessionStart = !isInitialized && !accessToken;
+
     useEffect(() => {
         const initializeAuth = async () => {
-            try {
-                const refreshResponse = await authApiSecure.post("/refresh");
-                const newToken = refreshResponse.data.accessToken;
-                setAccessToken(newToken);
-            } catch (err) {
-                setAccessToken(null);
-            } finally {
-                setIsInitialized(true);
-            }
+            await refreshAccessToken(setAccessToken);
+            setIsInitialized(true);
         };
 
         if (isSessionStart) {
             initializeAuth();
         }
-    }, [isSessionStart]);
+    }, [isSessionStart, setAccessToken, setIsInitialized]);
+};
 
+//@ts-ignore
+export const AuthProvider = ({ children }) => {
+    const [accessToken, setAccessToken] = useState(null);
+    const [user, setUser] = useState(null);
 
-    useEffect(() => {
+    useInitializeAuth(accessToken, setAccessToken);
+
+    useLayoutEffect(() => {
+        console.log('konfiguracja requestu')
         const userInterceptor = userApi.interceptors.request.use((config) => {
             console.log("konfiguracja requestu", config);
             if (accessToken) {
@@ -53,7 +61,7 @@ export const AuthProvider = ({ children }) => {
         };
     }, [accessToken]);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         const userInterceptor = userApi.interceptors.response.use(
             response => response,
             async (error) => {
@@ -62,7 +70,6 @@ export const AuthProvider = ({ children }) => {
                 if (
                     (error.status === 403 || error.status === 401) && !originalRequest._retry
                 ) {
-                    originalRequest._retry = true;
                     try {
                         const response = await authApiSecure.post("/refresh");
                         const newAccessToken = response.data.accessToken;
@@ -76,7 +83,7 @@ export const AuthProvider = ({ children }) => {
                         //@ts-ignore
                         setAccessToken(null);
                     } finally {
-                        setIsInitialized(true); // zawsze oznaczamy, że próbowaliśmy
+                        originalRequest._retry = true;
                     }
                 }
 
@@ -90,7 +97,21 @@ export const AuthProvider = ({ children }) => {
         return () => {
             userApi.interceptors.response.eject(userInterceptor);
         };
-    }, [isInitialized]);
+    }, []);
+
+
+
+    return (
+        //@ts-ignore
+        <AuthContext.Provider value={{ accessToken, setAccessToken, user, setUser }}>
+            {children}
+        </AuthContext.Provider>
+    );
+};
+
+export const Home = () => {
+    //@ts-ignore
+    const { user, accessToken, setUser } = useContext(AuthContext);
 
     useEffect(() => {
         if (!accessToken) return;
@@ -110,19 +131,7 @@ export const AuthProvider = ({ children }) => {
         };
 
         getUser();
-    }, [accessToken]);
-
-    return (
-        //@ts-ignore
-        <AuthContext.Provider value={{ accessToken, setAccessToken, user, setUser }}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
-
-export const Home = () => {
-    //@ts-ignore
-    const { user, accessToken } = useContext(AuthContext);
+    }, [accessToken, setUser]);
 
     console.log(user, accessToken)
     return (
