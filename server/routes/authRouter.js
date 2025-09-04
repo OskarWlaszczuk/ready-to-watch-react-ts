@@ -13,14 +13,14 @@ const {
 require("dotenv").config();
 
 const authRouter = express.Router();
-
-const validateRefreshToken = async (token) => {
-    if (!token) {
+//rozbić na mniejsze helpery zwracające ten sam typ obiektu
+const validateRefreshToken = async (refreshToken) => {
+    if (!refreshToken) {
         return { valid: false, status: 400, code: "MISSING_TOKEN", message: "Refresh token is required" };
     }
 
     try {
-        const payload = await verifyJwt(token, process.env.REFRESH_TOKEN_SECRET);
+        const payload = await verifyJwt(refreshToken, process.env.REFRESH_TOKEN_SECRET);
 
         const result = await pool.query(
             "SELECT refresh_token_hash FROM users WHERE nickname = $1",
@@ -48,7 +48,7 @@ const validateRefreshToken = async (token) => {
             }
         }
 
-        const isTokenValid = await bcrypt.compare(token, hashedToken);
+        const isTokenValid = await bcrypt.compare(refreshToken, hashedToken);
         if (!isTokenValid) {
             return {
                 valid: false,
@@ -73,8 +73,10 @@ const validateRefreshToken = async (token) => {
 
 const verifyRefreshToken = async (request, response, next) => {
     try {
-        const { token } = request.body;
-        const result = await validateRefreshToken(token);
+        const refreshToken = request.cookies?.refreshToken;
+        console.log(`Verifying refresh token: ${refreshToken}`);
+
+        const result = await validateRefreshToken(refreshToken);
 
         if (!result.valid) {
             return response
