@@ -1,14 +1,14 @@
-const pool = require("../db");
+const getUser = require("../services/getUser");
 
-const getUser = async (request, response) => {
-    const user = await pool.query(
-        "SELECT nickname, id FROM users WHERE nickname = $1",
-        [request.userPayload.nickname]
-    );
+const getUserData = async (request, response) => {
+    console.log("Getting user...");
+    const { payload } = request;
 
-    response.json({ user: user.rows[0] });
+    const user = await getUser(payload.nickname);
+    console.log(`użytkownik uzyskany`);
+    response.status(200).json({ user: user.rows[0] });
 };
 
 module.exports = {
-    getUser,
+    getUser: getUserData,
 };
