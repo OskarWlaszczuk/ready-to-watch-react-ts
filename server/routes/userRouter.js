@@ -2,26 +2,33 @@ require("dotenv").config();
 const express = require("express");
 const userRouter = express.Router();
 const jwt = require("jsonwebtoken");
-const {getUser} = require("../controllers/user");
+const { getUser } = require("../controllers/user");
+const util = require("util");
+const verifyJwt = util.promisify(jwt.verify);
 
-const authenticateToken = (request, response, next) => {
+const authenticateToken = async (request, response, next) => {
     const authHeader = request.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
+    const accessToken = authHeader && authHeader.split(" ")[1];
 
-    if (token == null) {
+    if (!accessToken) {
         console.log("token doesn't exist");
-        return response.sendStatus(401);
+        return response
+            .status(401)
+            .json({
+                success: false,
+                message: "Unathorized"
+            });
     }
 
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, userPayload) => {
-        if (error) {
-            console.log("token expired");
-            return response.sendStatus(403);
-        }
-
-        request.userPayload = userPayload;
+    try {
+        const payload = await verifyJwt(accessToken, process.env.ACCESS_TOKEN_SECRET);
+        request.payload = payload;
         next();
-    });
+    } catch (error) {
+        if (error.name === "TokenExpiredError") {
+            return { valid: false, status: 403, code: "JWT_EXPIRED", message: "Access token expired, refresh it" };
+        }
+    }
 };
 
 userRouter.route("/")
