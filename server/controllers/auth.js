@@ -1,85 +1,51 @@
 const bcrypt = require("bcrypt");
+const formatAuthResponse = require("../utils/formatAuthResponse");
+const getUser = require("../services/getUser");
+const generateAccessToken = require("../services/generateAccessToken");
+const deleteRefeshToken = require("../services/deleteRefeshToken");
+const generateTokensWithHash = require("../services/generateTokensWithHash");
+const saveRefreshToken = require("../services/saveRefreshToken");
+const addNewUser = require("../services/addNewUser");
+const formatErrorResponse = require("../utils/formatErrorResponse");
 const jwt = require("jsonwebtoken");
-const pool = require("../db");
+
 require("dotenv").config();
-
-const generateAccessToken = (userPayload) => {
-    const accessToken = jwt.sign(
-        userPayload,
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "50s" }
-    );
-
-    return accessToken;
-};
 
 const refreshToken = async (request, response) => {
     console.log("refreshing token...");
     const { nickname } = request.user;
     const accessToken = generateAccessToken({ nickname });
 
+    console.log(`Access token odświeżony: ${accessToken}`);
     response.status(200).json({ accessToken });
-};
-
-const register = async (request, response) => {
-    const { nickname, password } = request.body;
-
-    try {
-        const result = await pool.query(
-            "SELECT nickname FROM users WHERE nickname = $1",
-            [nickname]
-        );
-
-        const isUserExists = result.rows.length > 0;
-        if (isUserExists) {
-            return response.status(400).json({ success: false, message: "User already exists" });
-        }
-
-        const userPayload = { nickname };
-
-        const accessToken = generateAccessToken(userPayload);
-        const refreshToken = jwt.sign(userPayload, process.env.REFRESH_TOKEN_SECRET);
-
-        const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const newUser = await pool.query(
-            "INSERT INTO users (nickname, password, refresh_token_hash) VALUES($1, $2, $3) RETURNING nickname",
-            [nickname, hashedPassword, hashedRefreshToken]
-        );
-
-        response
-            .status(201)
-            .json({ success: true, user: newUser, accessToken, refreshToken });
-    } catch (error) {
-        console.log(error);
-        response
-            .status(500)
-            .json({ success: false, message: "Internal serveer error" });
-    }
 };
 
 const logout = async (request, response) => {
     console.log("loagoutting user...");
     const { nickname } = request.user;
+    const refreshToken = request.cookies?.refreshToken;
+    console.log(`cookies przed wylogowaniem: ${refreshToken}`);
 
-    await pool.query(
-        "UPDATE users SET refresh_token_hash = NULL WHERE nickname = $1",
-        [nickname]
-    );
+    await deleteRefeshToken(nickname)
+    response.clearCookie(process.env.COOKIE_NAME, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        path: process.env.COOKIE_PATH,
+    });
 
+    console.log(`cookies po wylogowaniu: ${refreshToken}`);
     console.log("user logouted");
+
     response.sendStatus(204);
 };
 
 const login = async (request, response) => {
+    console.log("logging user...");
     const { nickname, password } = request.body;
 
     try {
-        const result = await pool.query(
-            "SELECT * FROM users WHERE nickname = $1",
-            [nickname]
-        );
+        const result = await getUser(nickname);
 
         const isUserExists = result.rows.length > 0;
         if (!isUserExists) {
@@ -95,21 +61,102 @@ const login = async (request, response) => {
                 .json({ success: false, message: "Invalid password" });
         }
 
-        const userPayload = { nickname: result.rows[0].nickname };
+        const tokenPayload = { nickname };
 
-        const accessToken = generateAccessToken(userPayload);
-        const refreshToken = jwt.sign(userPayload, process.env.REFRESH_TOKEN_SECRET);
+        const accessToken = generateAccessToken(tokenPayload);
+        const refreshToken = jwt.sign(
+            tokenPayload,
+            process.env.REFRESH_TOKEN_SECRET,
+            { expiresIn: process.env.REFRESH_TTL }
+        );
         const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
 
-        await pool.query(
-            "UPDATE users SET refresh_token_hash = $1 WHERE nickname = $2",
-            [hashedRefreshToken, nickname]
+        await saveRefreshToken(nickname, hashedRefreshToken);
+        //zmienić ustawienia w prod
+        response.cookie(process.env.COOKIE_PATH, refreshToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            path: process.env.COOKIE_PATH,
+            maxAge: 7 * 24 * 3600 * 1000,
+        });
+
+        const user = {
+            nickname,
+            password,
+        };
+
+        console.log("user logined");
+        response
+            .status(201)
+            .json({
+                success: true,
+                data: {
+                    user,
+                    accessToken,
+                }
+            });
+
+    } catch (error) {
+        console.error("error in login controller", error.message);
+        response.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+const register = async (request, response) => {
+    const { nickname, password } = request.body;
+
+    try {
+        const result = await getUser(nickname);
+
+        const isUserExists = result.rows.length > 0;
+
+        if (isUserExists) {
+            return response.status(400).json(formatErrorResponse("User exists"));
+        }
+
+        const tokenPayload = { nickname };
+
+        const accessToken = generateAccessToken(tokenPayload);
+        const refreshToken = jwt.sign(tokenPayload, process.env.REFRESH_TOKEN_SECRET);
+
+        response.cookie(process.env.COOKIE_PATH, refreshToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            path: process.env.COOKIE_PATH,
+            maxAge: 7 * 24 * 3600 * 1000,
+        });
+
+        const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        await addNewUser(
+            nickname,
+            hashedPassword,
+            hashedRefreshToken
         );
 
-        response.json({ accessToken, refreshToken });
+        const newUser = {
+            nickname,
+            password,
+        };
+
+        response
+            .status(201)
+            .json({
+                success: true,
+                data: {
+                    newUser,
+                    accessToken,
+                }
+            });
+
     } catch (error) {
-        console.error(error);
-        response.status(500).json({ success: false, message: "Internal server error" });
+        console.log(error);
+        response
+            .status(500)
+            .json(formatErrorResponse("Internal serveer error"));
     }
 };
 
