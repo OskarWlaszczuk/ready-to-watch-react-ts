@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useLayoutEffect, useState } from 
 import { authApiSecure, userApi } from "../../common/constants/api";
 import { useQuery } from "@tanstack/react-query";
 import { useAccessToken } from "../../common/hooks/useAccessToken";
+import { useUserSecure } from "../../common/hooks/useUserSecure";
 export const AuthContext = createContext(null);
 
 //@ts-ignore
@@ -67,30 +68,7 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-const useUser = (accessToken:string) => {
-    const getUser = async (): Promise<string> => {
-        const response = await userApi.get("/");
-        return response.data.user;
-    };
 
-    const userFreshTimeMin = 60 * 60 * 1000;
-
-    const { data: user, status, isPaused, error } = useQuery({
-        queryKey: ['user'],
-        queryFn: getUser,
-        staleTime: userFreshTimeMin,
-        //@ts-ignore
-        cacheTime: userFreshTimeMin,
-        enabled: !!accessToken,
-    });
-
-    return {
-        user,
-        status,
-        isPaused,
-        error,
-    };
-};
 
 export const Home = () => {
     const { accessToken } = useAccessToken();
@@ -100,7 +78,7 @@ export const Home = () => {
         status,
         isPaused,
         error,
-    } = useUser(accessToken);
+    } = useUserSecure(accessToken);
 
     return (
         <>
