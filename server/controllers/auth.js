@@ -1,9 +1,7 @@
 const bcrypt = require("bcrypt");
-const formatAuthResponse = require("../utils/formatAuthResponse");
 const getUser = require("../services/getUser");
 const generateAccessToken = require("../services/generateAccessToken");
 const deleteRefeshToken = require("../services/deleteRefeshToken");
-const generateTokensWithHash = require("../services/generateTokensWithHash");
 const saveRefreshToken = require("../services/saveRefreshToken");
 const addNewUser = require("../services/addNewUser");
 const formatErrorResponse = require("../utils/formatErrorResponse");
@@ -73,7 +71,7 @@ const login = async (request, response) => {
 
         await saveRefreshToken(nickname, hashedRefreshToken);
         //zmienić ustawienia w prod
-        response.cookie(process.env.COOKIE_PATH, refreshToken, {
+        response.cookie(process.env.COOKIE_NAME, refreshToken, {
             httpOnly: true,
             secure: false,
             sameSite: "lax",
