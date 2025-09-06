@@ -104,6 +104,6 @@ const verifyRefreshToken = async (request, response, next) => {
 authRouter.route("/login").post(login);
 authRouter.route("/logout").delete(verifyRefreshToken, logout);
 authRouter.route("/register").post(register);
-authRouter.route("/refresh").post(verifyRefreshToken, refreshToken);
+authRouter.route("/refresh").get(verifyRefreshToken, refreshToken);
 
 module.exports = authRouter;
