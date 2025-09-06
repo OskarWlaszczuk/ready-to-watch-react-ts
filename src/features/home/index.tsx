@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useState } from "react";
 import { authApiSecure, userApi } from "../../common/constants/api";
 import { useQuery } from "@tanstack/react-query";
+import { useAccessToken } from "../../common/hooks/useAccessToken";
 export const AuthContext = createContext(null);
 
 //@ts-ignore
@@ -43,30 +44,7 @@ const useUserInterceptors = (accessToken, refetchAccessToken) => {
     };
 };
 
-export const useAccessToken = () => {
-    const refreshTimeMin = 15 * 60 * 1000;
 
-    const getAccessToken = async (): Promise<string> => {
-        const response = await authApiSecure.get("/refresh");
-        return response.data.accessToken;
-    };
-
-    const { data: accessToken, status, isPaused, error, refetch: refetchAccessToken } = useQuery<string>({
-        queryKey: ['accessToken'],
-        queryFn: getAccessToken,
-        staleTime: refreshTimeMin,
-        //@ts-ignore
-        cacheTime: refreshTimeMin,
-    });
-
-    return {
-        status,
-        accessToken,
-        isPaused,
-        error,
-        refetchAccessToken
-    };
-};
 
 //@ts-ignore
 export const AuthProvider = ({ children }) => {
