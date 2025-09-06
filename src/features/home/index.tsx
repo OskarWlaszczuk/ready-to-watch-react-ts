@@ -43,7 +43,7 @@ const useUserInterceptors = (accessToken, refetchAccessToken) => {
     };
 };
 
-const useAccessToken = () => {
+export const useAccessToken = () => {
     const refreshTimeMin = 15 * 60 * 1000;
 
     const getAccessToken = async (): Promise<string> => {
@@ -70,7 +70,6 @@ const useAccessToken = () => {
 
 //@ts-ignore
 export const AuthProvider = ({ children }) => {
-    // const [accessToken, setAccessToken] = useState(null);
     const [user, setUser] = useState(null);
     const {
         status,
@@ -90,31 +89,41 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
+const useUser = (accessToken:string) => {
+    const getUser = async (): Promise<string> => {
+        const response = await userApi.get("/");
+        return response.data.user;
+    };
+
+    const userFreshTimeMin = 60 * 60 * 1000;
+
+    const { data: user, status, isPaused, error } = useQuery({
+        queryKey: ['user'],
+        queryFn: getUser,
+        staleTime: userFreshTimeMin,
+        //@ts-ignore
+        cacheTime: userFreshTimeMin,
+        enabled: !!accessToken,
+    });
+
+    return {
+        user,
+        status,
+        isPaused,
+        error,
+    };
+};
+
 export const Home = () => {
-    //@ts-ignore
-    const { user, accessToken, setUser } = useContext(AuthContext);
+    const { accessToken } = useAccessToken();
 
-    useEffect(() => {
-        if (!accessToken) return;
+    const {
+        user,
+        status,
+        isPaused,
+        error,
+    } = useUser(accessToken);
 
-        const getUser = async () => {
-            try {
-                console.log("fetching user...", accessToken);
-
-                const result = await userApi.get("/");
-                setUser(result.data.user);
-                console.log("user fetched");
-            } catch (err) {
-                //@ts-ignore
-                // setAccessToken(null);
-                console.log("error in: getUser function", err)
-            }
-        };
-
-        getUser();
-    }, [accessToken, setUser]);
-
-    console.log(user, accessToken)
     return (
         <>
             {
@@ -122,6 +131,7 @@ export const Home = () => {
                     "Sesja wygasła" :
                     <>
                         Welcome {!!user && (
+                            //@ts-ignore
                             user?.nickname
                         )}
                     </>
