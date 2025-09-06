@@ -1,6 +1,6 @@
 const getUser = require("../services/getUser");
 
-const getUserData = async (request, response) => {
+const getUserNickname = async (request, response) => {
     console.log("Getting user...");
     const { payload } = request;
 
@@ -10,5 +10,5 @@ const getUserData = async (request, response) => {
 };
 
 module.exports = {
-    getUser: getUserData,
+    getUserNickname,
 };

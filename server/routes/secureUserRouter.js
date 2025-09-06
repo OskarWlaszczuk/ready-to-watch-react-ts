@@ -2,7 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const secureUserRouter = express.Router();
 const jwt = require("jsonwebtoken");
-const { getUser } = require("../controllers/secureUser");
+const { getUserNickname } = require("../controllers/secureUser");
 const util = require("util");
 const verifyJwt = util.promisify(jwt.verify);
 
@@ -32,6 +32,6 @@ const authenticateToken = async (request, response, next) => {
 };
 
 secureUserRouter.route("/")
-    .get(authenticateToken, getUser);
+    .get(authenticateToken, getUserNickname);
 
 module.exports = secureUserRouter;
