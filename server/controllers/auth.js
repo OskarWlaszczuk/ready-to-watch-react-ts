@@ -47,6 +47,7 @@ const login = async (request, response) => {
 
         const isUserExists = result.rows.length > 0;
         if (!isUserExists) {
+            console.log('User does not exists');
             return response
                 .status(400)
                 .json({ success: false, message: "User doesn't exist" });
@@ -79,18 +80,16 @@ const login = async (request, response) => {
             maxAge: 7 * 24 * 3600 * 1000,
         });
 
-        const user = {
-            nickname,
-            password,
-        };
-
         console.log("user logined");
         response
             .status(201)
             .json({
                 success: true,
                 data: {
-                    user,
+                    user: {
+                        nickname,
+                        password
+                    },
                     accessToken,
                 }
             });
