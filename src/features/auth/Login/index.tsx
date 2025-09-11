@@ -1,13 +1,22 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { authApiPublic } from "../../../common/constants/api";
+import { publicAuthApi } from "../../../common/constants/api";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAccessToken } from "../../../common/hooks/useAccessToken";
+import { useUserSecure } from "../../../common/hooks/useUserSecure";
 
 export const Login = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({ nickname: "", password: "" });
     const [error, setError] = useState("");
     const queryClient = useQueryClient();
+    const { accessToken } = useAccessToken();
+    const {
+        user: nickname,
+        status,
+        isPaused,
+        //@ts-ignore
+    } = useUserSecure({ accessToken, resource: "nickname" });
     //@ts-ignore
 
     //@ts-ignore
@@ -25,18 +34,17 @@ export const Login = () => {
         }
 
         try {
-            const { data } = await authApiPublic.post("/login", formData);
-            console.log(data)
+            const { data } = await publicAuthApi.post("/login", formData);
             queryClient.setQueryData(["accessToken"], data.data.accessToken);
-            queryClient.setQueryData(["secureUser"], data.data.user);
-            const user = queryClient.getQueryData(["secureUser"]);
-            const token = queryClient.getQueryData(["accessToken"]);
-            console.log(user, token)
+            queryClient.setQueryData(["secureUser", "nickname"], data.data.user.nickname);
             //dodanie do query 'access token' wartości z data!
 
             navigate("/home"); // lub inna strona po zalogowaniu
+            //@ts-ignore
         } catch (err) {
-            setError("Błąd sieci, spróbuj ponownie");
+            console.log(err)
+            //@ts-ignore
+            setError(err.response.data.message);
         }
     };
 
