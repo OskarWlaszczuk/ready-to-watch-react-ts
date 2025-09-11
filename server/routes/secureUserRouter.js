@@ -2,8 +2,9 @@ require("dotenv").config();
 const express = require("express");
 const secureUserRouter = express.Router();
 const jwt = require("jsonwebtoken");
-const { getUserNickname } = require("../controllers/secureUser");
+const { getUserNickname, getUserAccontDate } = require("../controllers/secureUser");
 const util = require("util");
+const getUser = require("../services/getUser");
 const verifyJwt = util.promisify(jwt.verify);
 
 const authenticateToken = async (request, response, next) => {
@@ -31,7 +32,21 @@ const authenticateToken = async (request, response, next) => {
     }
 };
 
-secureUserRouter.route("/")
-    .get(authenticateToken, getUserNickname);
+const isUserExists = async (request, response, next) => {
+    console.log('Checking is user exists...');
+    const { payload } = request;
+
+    const result = await getUser(payload.nickname);
+    if (result.rows.length === 0) {
+        return response
+            .status(400)
+            .json({ success: false, message: "User doesn't exist" });
+    }
+
+    next();
+};
+
+secureUserRouter.route("/nickname").get(authenticateToken, isUserExists, getUserNickname);
+secureUserRouter.route("/accountDate").get(authenticateToken, isUserExists, getUserAccontDate);
 
 module.exports = secureUserRouter;
