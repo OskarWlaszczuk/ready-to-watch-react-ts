@@ -5,6 +5,8 @@ import { useUpdateQueryParams } from '../../../common/components/MultiSelectList
 import { useState } from 'react';
 import { useAccessToken } from '../../../common/hooks/useAccessToken';
 import { useUserSecure } from '../../../common/hooks/useUserSecure';
+import { QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
+import { secureUserApi } from '../../../common/constants/api';
 
 // interface WatchProvider {
 //     display_priority: number;
@@ -29,37 +31,67 @@ import { useUserSecure } from '../../../common/hooks/useUserSecure';
 // };
 
 export const Preferences = () => {
-    const { genres } = useGenresQuery();
+    const { genres: movieGenres } = useGenresQuery();
     const { accessToken } = useAccessToken();
 
-    const genreQueryKey = "genre";
-    const { currentListParams, updateQueryParams } = useUpdateQueryParams(genreQueryKey);
     const {
-        user: userGenres,
-        status,
+        user: prefferedGenres,
+        status: userGenresStatus,
         isPaused,
         error,
+        refetch
         //@ts-ignore
     } = useUserSecure({ accessToken, resource: "prefferences/genres" });
+    const queryClient = useQueryClient();
+
+    const { status: postStatus, error: errorStatus, mutate: likeGenre } = useMutation({
+        mutationFn: async (tmdb_genre_id) => {
+            const response = await secureUserApi.post(
+                "prefferences/genres",
+                { tmdb_genre_id },
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`
+                    }
+                }
+            );
+            return response.data;
+        },
+        onSuccess: () => {
+            console.log("✅ Genre added successfully");
+            refetch()
+            // queryClient.setQueryData(["prefferences/genres", tmdb_genre_id], tmdb_genre_id)
+        },
+        onError: (error) => {
+            console.error("❌ Failed to add genre", error);
+        }
+    });
 
     //@ts-ignore
     // const activeGenres = userGenres?.filter(({ tmdb_genre_id }) => genres?.map(({ id }) => id).includes(tmdb_genre_id));
-    console.log(userGenres);
-
-    if (!genres) return <></>;
+    console.log(prefferedGenres);
+    console.log(postStatus);
+    if (!movieGenres) return <></>;
 
     const isGenreActive = (genre: string) => {
-        const genreId = genres.find(({ name }) => name === genre)?.id!;
+        const genreId = movieGenres.find(({ name }) => name === genre)?.id!;
         //@ts-ignore
-        return userGenres.includes(genreId);
+        return prefferedGenres.includes(genreId);
     }
     const genreListTitle = "Genres";
-    const genreOptions = genres.map(({ name }) => name);
+    const genreOptions = movieGenres.map(({ name }) => name);
+    const addNewGenre = (genre: string) => {
+        const genreId = movieGenres.find(({ name }) => name === genre)?.id!;
+        //@ts-ignore
+        likeGenre(genreId);
+    };
+
+    if (userGenresStatus === "pending") return <>Loadding...</>
 
     return (
         <>
             <MultiSelectList
-                onOptionChange={updateQueryParams}
+                onOptionChange={addNewGenre}
                 isOptionActive={isGenreActive}
                 title={genreListTitle}
                 options={genreOptions}
