@@ -8,9 +8,30 @@ CREATE TABLE users(
     refresh_token_hash VARCHAR(350)
 );
 
-CREATE TABLE preferred_genres_by_user (
-    user_id INT NOT NULL,
-    tmdb_genre_id INT NOT NULL,
-    PRIMARY KEY (user_id, tmdb_genre_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+CREATE TABLE genres (
+  id INT PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL
+);
+
+CREATE TABLE liked_genres_by_users (
+  user_id INT NOT NULL,
+  genre_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, genre_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (genre_id) REFERENCES genres(id) ON DELETE CASCADE
+);
+
+CREATE TABLE collections (
+  id INT PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL
+);
+
+CREATE TABLE liked_collections_by_users (
+  user_id INT NOT NULL,
+  collection_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, collection_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
 );
