@@ -36,6 +36,20 @@ CREATE TABLE liked_collections_by_users (
   FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
 );
 
+CREATE TABLE studios (
+  id INT PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL
+);
+
+CREATE TABLE liked_studios_by_users (
+  user_id INT NOT NULL,
+  studio_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, studio_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (studio_id) REFERENCES studios(id) ON DELETE CASCADE
+);
+
 CREATE TABLE runtime_categories (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) UNIQUE NOT NULL,       
