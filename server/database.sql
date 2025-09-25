@@ -35,3 +35,19 @@ CREATE TABLE liked_collections_by_users (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
 );
+
+CREATE TABLE runtime_categories (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) UNIQUE NOT NULL,       
+  min_minutes INT NOT NULL,              
+  max_minutes INT                          
+);
+
+CREATE TABLE liked_runtime_categories_by_users (
+  user_id INT NOT NULL,
+  runtime_category_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, runtime_category_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (runtime_category_id) REFERENCES runtime_categories(id) ON DELETE CASCADE
+);
