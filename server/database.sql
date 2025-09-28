@@ -101,3 +101,9 @@ CREATE TABLE crews_roles
     name VARCHAR(100) UNIQUE NOT NULL
 );
 
+CREATE TABLE movies_characters
+(
+    id   SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL
+);
+
