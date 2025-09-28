@@ -107,3 +107,18 @@ CREATE TABLE movies_characters
     name VARCHAR(100) UNIQUE NOT NULL
 );
 
+CREATE TABLE people
+(
+    id         INT PRIMARY KEY,
+    name       VARCHAR(100) UNIQUE NOT NULL,
+    picture    VARCHAR(100) UNIQUE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE movies
+(
+    id         INT PRIMARY KEY,
+    title      VARCHAR(100) UNIQUE NOT NULL,
+    poster     VARCHAR(100) UNIQUE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
