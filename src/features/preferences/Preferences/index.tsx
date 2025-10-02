@@ -1,22 +1,98 @@
 import { MultiSelectList } from '../../../common/components/MultiSelectList';
-import { formatToQueryValue } from '../../../common/functions/formatToQueryParam';
 import { useGenresQuery } from '../../../common/hooks/useGenresQuery';
-import { useUpdateQueryParams } from '../../../common/components/MultiSelectList/useUpdateQueryParams';
-import { useState } from 'react';
 import { useAccessToken } from '../../../common/hooks/useAccessToken';
 import { useUserSecure } from '../../../common/hooks/useUserSecure';
-import { QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { secureUserApi } from '../../../common/constants/api';
+import SearchTmdbPanel, { SimplefiedEntity } from '../../../common/components/SearchTmdb';
+import { ListOption, ListOptions } from '../../../common/components/MultiSelectList/styled';
 
-const useLikeGenreMutation = () => {
+type EntityApiResource = "collections" | "genres";
+
+const useDislikeEntity = (entityApiResource: EntityApiResource) => {
+    const { accessToken } = useAccessToken();
+    const queryClient = useQueryClient();
+    const likedEntityApiPath = `liked/${entityApiResource}`;
+
+    const onDislikePrefferenceSuccess = ({ data }) => {
+        const dislikedEntityId = data.tmdb_id;
+        queryClient.setQueryData(["secureUser", likedEntityApiPath], ((likedEntites: any) => {
+            //@ts-ignore                
+            console.log();
+
+            console.log(likedEntites, dislikedEntityId);
+
+            const updatedPrefferences = likedEntites.filter(({ tmdb_id }) => tmdb_id !== Number(dislikedEntityId));
+            return updatedPrefferences;
+        }));
+
+        console.log(`${entityApiResource} ${dislikedEntityId} removed`);
+    };
+
+    const {
+        status: dislikeEntityErrorStatus,
+        error: dislikeEntityError,
+        mutate: dislikeEntity
+    } = useMutation({
+        //@ts-ignore
+        mutationFn: async ({ id }) => {
+            try {
+                console.log(`Disliking ${entityApiResource}..`);
+                const response = await secureUserApi.delete(`${likedEntityApiPath}/${id}`, {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                });
+
+                return response.data;
+            } catch (error) {
+                console.log("Error in dislike mutation:", error);
+            }
+        },
+        onSuccess: onDislikePrefferenceSuccess,
+        onError: (error) => {
+            console.error(`❌Failed to remove ${entityApiResource}`, error);
+        }
+    });
+
+    return {
+        dislikeEntityErrorStatus,
+        dislikeEntityError,
+        dislikeEntity
+    };
+};
+
+const useLikeEntity = (entityApiResource: EntityApiResource) => {
     const { accessToken } = useAccessToken();
     const queryClient = useQueryClient();
 
-    const { status: likeGenreStatus, error: likeGenreError, mutate: likeGenre } = useMutation({
-        mutationFn: async (genreId: number) => {
+    const likedEntityApiPath = `liked/${entityApiResource}`;
+
+    const onLikeSuccess = ({ data }) => {
+        const likedEntity = data;
+
+        console.log(`✅ ${entityApiResource} added successfully`, likedEntity);
+
+        queryClient.setQueryData(["secureUser", likedEntityApiPath], ((likedEntities: any) => {
+            console.log(likedEntities);
+
+            return [
+                ...likedEntities,
+                likedEntity
+            ]
+        }));
+    };
+
+    const onLikeError = (error) => {
+        console.error("❌ Failed to add entity", error);
+    };
+
+    const { status: likeEntityStutus, error: likeEntityError, mutate: likeEntity } = useMutation({
+        //@ts-ignore
+        mutationFn: async ({ id, name }) => {
             const response = await secureUserApi.post(
-                "prefferences/genres",
-                { genreId },
+                likedEntityApiPath,
+                { id, name },
                 {
                     headers: {
                         Authorization: `Bearer ${accessToken}`
@@ -25,106 +101,123 @@ const useLikeGenreMutation = () => {
             );
             return response.data;
         },
-        onSuccess: ({ genreId }) => {
-            console.log("✅ Genre added successfully");
-            console.log(genreId);
-            queryClient.setQueryData(["secureUser", "prefferences/genres"], ((likedGenres: any) => [
-                ...likedGenres,
-                genreId
-            ]));
-
-
-        },
-        onError: (error) => {
-            console.error("❌ Failed to add genre", error);
-        }
+        onSuccess: onLikeSuccess,
+        onError: onLikeError
     });
 
-    return { likeGenre, likeGenreError, likeGenreStatus };
+    return {
+        likeEntity,
+        likeEntityStutus,
+        likeEntityError
+    };
 };
 
-const useDislikeGenreMutation = () => {
-    const { accessToken } = useAccessToken();
-    const queryClient = useQueryClient();
-
-    const { status: likeGenreStatus, error: likeGenreError, mutate: dislikeGenre } = useMutation({
-        mutationFn: async (genreId: number) => {
-            const response = await secureUserApi.delete(`prefferences/genres/${genreId}`, {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                },
-            });
-
-            return response.data;
-        },
-        onSuccess: ({ genreId }) => {
-            console.log(" Genre removed");
-            console.log(genreId);
-            queryClient.setQueryData(["secureUser", "prefferences/genres"], ((likedGenres: any) => {
-                const updatedGenres = likedGenres.filter(id => id !== Number(genreId));
-                return updatedGenres;
-            }));
-        },
-        onError: (error) => {
-            console.error("❌ Failed to remove genre", error);
-        }
-    });
-
-    return { dislikeGenre, likeGenreError, likeGenreStatus };
-};
-
-
-export const Preferences = () => {
+export const LikedGenres = () => {
     const { genres: movieGenres } = useGenresQuery();
     const { accessToken } = useAccessToken();
+    //@ts-ignore
+    const { user: likedGenres } = useUserSecure({ accessToken, resource: "liked/genres" });
+    const entity: EntityApiResource = "genres";
 
-    const {
-        user: likedGenres,
-        status: likedGenresStatus,
-        isPaused,
-        error,
-        refetch
-        //@ts-ignore
-    } = useUserSecure({ accessToken, resource: "prefferences/genres" });
-    console.log(likedGenres);
-    const {
-        likeGenre,
-        likeGenreError,
-        likeGenreStatus,
-    } = useLikeGenreMutation();
+    const { likeEntity: likeGenre, likeEntityError, likeEntityStutus } = useLikeEntity(entity)
+    const { dislikeEntity: dislikeGenre, dislikeEntityError, dislikeEntityErrorStatus } = useDislikeEntity(entity)
 
-    const {
-        dislikeGenre
-    } = useDislikeGenreMutation();
     if (!movieGenres) return <></>;
 
     const isGenreLiked = (genre: string) => {
         const genreId = movieGenres.find(({ name }) => name === genre)?.id!;
         //@ts-ignore
-        return likedGenres.includes(genreId);
+        return likedGenres.some(({ tmdb_id }) => tmdb_id === genreId);
+    };
+
+    const onGenreClick = (clickedGenre: string) => {
+        const genre = movieGenres.find(({ name }) => name === clickedGenre)!;
+
+        isGenreLiked(clickedGenre) ?
+            //@ts-ignore
+            dislikeGenre({ id: genre.id }) :
+            //@ts-ignore
+            likeGenre(genre)
     };
 
     const genreListTitle = "Genres";
     const genreOptions = movieGenres.map(({ name }) => name);
 
-    const onGenreClick = (genre: string) => {
-        const genreId = movieGenres.find(({ name }) => name === genre)?.id!;
-
-        isGenreLiked(genre) ?
-            dislikeGenre(genreId) :
-            likeGenre(genreId)
-    };
-
-    if (likedGenresStatus === "pending") return <>Loadding...</>
-
     return (
         <>
             <MultiSelectList
-                onOptionChange={onGenreClick}
-                isOptionActive={isGenreLiked}
                 title={genreListTitle}
                 options={genreOptions}
+                isOptionActive={isGenreLiked}
+                onOptionChange={onGenreClick}
             />
+        </>
+    );
+};
+
+export const LikedCollections = () => {
+    const { accessToken } = useAccessToken();
+    const entity: EntityApiResource = "collections";
+
+    const { likeEntity: likeCollection, likeEntityError, likeEntityStutus } = useLikeEntity(entity)
+    const { dislikeEntity: dislikeCollection, dislikeEntityError, dislikeEntityErrorStatus } = useDislikeEntity(entity)
+
+    //@ts-ignore
+    const { user: likedCollections } = useUserSecure({ accessToken, resource: "liked/collections" });
+
+    if (!likedCollections) return <></>;
+
+    const isCollectionLiked = (collectionName: string) => {
+        //@ts-ignore
+        return likedCollections.some(({ name }) => name === collectionName);
+    };
+
+    const onCollectionClick = (simplefiedCollection: SimplefiedEntity) => {
+        console.log(`Selected collection: ${simplefiedCollection.name}`);
+
+        isCollectionLiked(simplefiedCollection.name) ?
+            //@ts-ignore
+            dislikeCollection({ id: simplefiedCollection.id }) :
+            //@ts-ignore
+            likeCollection(simplefiedCollection)
+    };
+
+    return (
+        <>
+            <div style={{ backgroundColor: "teal" }}>
+                <SearchTmdbPanel
+                    searchKey="collection"
+                    getResultItemProps={(collection) => ({
+                        onClickHandler: onCollectionClick,
+                        id: collection.id,
+                        name: collection.name,
+                        description: <></>,
+                        image: collection.poster_path,
+                    })}
+                />
+                <ListOptions>
+                    {
+                        likedCollections.map(({ name, tmdb_id }) => (
+                            <ListOption
+                                $activeOption={isCollectionLiked(name)}
+                                key={name}
+                                //@ts-ignore
+                                onClick={() => dislikeCollection({ id: tmdb_id })}
+                            >{name}
+                            </ListOption>
+                        ))
+                    }
+                </ListOptions>
+            </div>
+        </>
+    );
+};
+
+export const Preferences = () => {
+    return (
+        <>
+            <LikedGenres />
+            <LikedCollections />
         </>
     );
 };
