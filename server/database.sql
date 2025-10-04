@@ -12,8 +12,10 @@ CREATE TABLE users
 
 CREATE TABLE genres
 (
-    id   INT PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL
+    id         SERIAL PRIMARY KEY,
+    tmdb_id    INT UNIQUE  NOT NULL,
+    name       TEXT UNIQUE NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE liked_genres_by_users
@@ -28,9 +30,10 @@ CREATE TABLE liked_genres_by_users
 
 CREATE TABLE collections
 (
-    id     INT PRIMARY KEY,
-    name   TEXT UNIQUE NOT NULL,
-    poster VARCHAR(100) UNIQUE
+    id      SERIAL PRIMARY KEY,
+    tmdb_id INT UNIQUE  NOT NULL,
+    name    TEXT UNIQUE NOT NULL,
+    poster  VARCHAR(100) UNIQUE
 );
 
 CREATE TABLE liked_collections_by_users
@@ -45,9 +48,10 @@ CREATE TABLE liked_collections_by_users
 
 CREATE TABLE studios
 (
-    id   INT PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
-    logo VARCHAR(100) UNIQUE
+    id      SERIAL PRIMARY KEY,
+    tmdb_id INT UNIQUE  NOT NULL,
+    name    TEXT UNIQUE NOT NULL,
+    logo    VARCHAR(100) UNIQUE
 );
 
 CREATE TABLE liked_studios_by_users
@@ -62,9 +66,10 @@ CREATE TABLE liked_studios_by_users
 
 CREATE TABLE watch_providers
 (
-    id   INT PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
-    logo VARCHAR(100) UNIQUE,
+    id      SERIAL PRIMARY KEY,
+    tmdb_id INT UNIQUE  NOT NULL,
+    name    TEXT UNIQUE NOT NULL,
+    logo_path    VARCHAR(100) UNIQUE
 );
 
 CREATE TABLE liked_watch_providers_by_users
@@ -95,30 +100,30 @@ CREATE TABLE liked_runtime_categories_by_users
     FOREIGN KEY (runtime_category_id) REFERENCES runtime_categories (id) ON DELETE CASCADE
 );
 
-CREATE TABLE crews_roles
-(
-    id   SERIAL PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL
-);
-
-CREATE TABLE movies_characters
-(
-    id   SERIAL PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL
-);
-
 CREATE TABLE people
 (
-    id         INT PRIMARY KEY,
+    id         SERIAL PRIMARY KEY,
+    tmdb_id    INT UNIQUE          NOT NULL,
     name       VARCHAR(100) UNIQUE NOT NULL,
-    picture    VARCHAR(100) UNIQUE,
+    profile_path    VARCHAR(100),
     created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE liked_people_by_users
+(
+    user_id    INT NOT NULL,
+    person_id    INT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    PRIMARY KEY (user_id, person_id),
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (person_id) REFERENCES people (id) ON DELETE CASCADE
 );
 
 CREATE TABLE movies
 (
-    id         INT PRIMARY KEY,
-    title      VARCHAR(100) UNIQUE NOT NULL,
-    poster     VARCHAR(100) UNIQUE,
+    id         SERIAL PRIMARY KEY,
+    tmdb_id    INT UNIQUE   NOT NULL,
+    title      VARCHAR(100) NOT NULL,
+    poster     VARCHAR(100),
     created_at TIMESTAMP DEFAULT NOW()
 );
