@@ -6,8 +6,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { secureUserApi } from '../../../common/constants/api';
 import SearchTmdbPanel, { SimplefiedEntity } from '../../../common/components/SearchTmdb';
 import { ListOption, ListOptions } from '../../../common/components/MultiSelectList/styled';
+import { PersonListItem } from '../../../common/types/TmdbTypes/mediaListItem.types';
 
-type EntityApiResource = "collections" | "genres";
+type EntityApiResource = "collections" | "genres" | "people";
 
 const useDislikeEntity = (entityApiResource: EntityApiResource) => {
     const { accessToken } = useAccessToken();
@@ -191,7 +192,7 @@ export const LikedCollections = () => {
                         onClickHandler: onCollectionClick,
                         id: collection.id,
                         name: collection.name,
-                        description: <></>,
+                        extraContent: <></>,
                         image: collection.poster_path,
                     })}
                 />
@@ -213,11 +214,71 @@ export const LikedCollections = () => {
     );
 };
 
+export const LikedPeople = () => {
+    const { accessToken } = useAccessToken();
+    const entity: EntityApiResource = "people";
+
+    const { likeEntity: likePerson, likeEntityError, likeEntityStutus } = useLikeEntity(entity)
+    const { dislikeEntity: dislikePerson, dislikeEntityError, dislikeEntityErrorStatus } = useDislikeEntity(entity)
+
+    //@ts-ignore
+    const { user: likedPeople } = useUserSecure({ accessToken, resource: `liked/${entity}` });
+
+    if (!likedPeople) return <></>;
+
+    const isPersonLiked = (collectionName: string) => {
+        //@ts-ignore
+        return likedPeople.some(({ name }) => name === collectionName);
+    };
+
+    const onPersonClick = (simplefiedPerson: SimplefiedEntity) => {
+        console.log(`Selected collection: ${simplefiedPerson.name}`);
+
+        isPersonLiked(simplefiedPerson.name) ?
+            //@ts-ignore
+            dislikePerson({ id: simplefiedPerson.id }) :
+            //@ts-ignore
+            likePerson(simplefiedPerson)
+    };
+
+    return (
+        <>
+            <div style={{ backgroundColor: "teal" }}>
+                <SearchTmdbPanel
+                    searchKey="person"
+                    getResultItemProps={(person:PersonListItem) => ({
+                        onClickHandler: onPersonClick,
+                        id: person.id,
+                        name: person.name,
+                        extraContent: <></>,
+                        image: person.profile_path,
+                    })}
+                />
+                <ListOptions>
+                    {
+                        likedPeople.map(({ name, tmdb_id }) => (
+                            <ListOption
+                                $activeOption={isPersonLiked(name)}
+                                key={name}
+                                //@ts-ignore
+                                onClick={() => dislikePerson({ id: tmdb_id })}
+                            >{name}
+                            </ListOption>
+                        ))
+                    }
+                </ListOptions>
+            </div>
+        </>
+    );
+};
+
+
 export const Preferences = () => {
     return (
         <>
             <LikedGenres />
             <LikedCollections />
+            <LikedPeople />
         </>
     );
 };
