@@ -297,7 +297,6 @@ const dislikeCollection = async (request, response) => {
     }
 };
 
-
 const likePerson = async (request, response) => {
     const { id: personTmdbId, name: personName } = request.body;
     const userId = request.tokenPayload.id;
@@ -386,10 +385,115 @@ const dislikePerson = async (request, response) => {
     }
 };
 
+const likeRuntimeCategory = async (request, response) => {
+    const { id: runtimeCategoryId } = request.body;
+    const userId = request.tokenPayload.id;
+    console.log(`Adding liked runtimeCategory: ${[runtimeCategoryId]}...`);
+
+    const insertQuery = `INSERT INTO liked_runtime_categories_by_users 
+    (user_id, runtime_category_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`;
+
+    try {
+        await pool.query(
+            insertQuery,
+            [userId, runtimeCategoryId]
+        );
+
+        response.status(201).json({
+            success: true,
+            data: {
+                id: runtimeCategoryId,
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        response.status(500).json({ error: "Database error" });
+    }
+};
+
+const getRuntimeCategories = async (request, response) => {
+    try {
+        const selectQuery = `SELECT * FROM runtime_categories`;
+        const { rows: runtimeCategories } = await pool.query(selectQuery);
+
+        response
+            .status(200)
+            .json({
+                success: true,
+                data: runtimeCategories,
+            });
+
+    } catch (error) {
+        console.log(`Error in getRuntimeCategories`, error);
+        return response.status(500).json({
+            success: false, message: "Internal server error"
+        });
+    }
+};
+
+const getLikedRuntimeCategories = async (request, response) => {
+    try {
+        const userId = request.tokenPayload.id;
+
+        const query = `
+        SELECT runtime_categories.id, runtime_categories.name
+        FROM liked_runtime_categories_by_users
+        JOIN runtime_categories  ON liked_runtime_categories_by_users.runtime_category_id = runtime_categories.id
+        WHERE liked_runtime_categories_by_users.user_id = $1
+    `;
+
+        const { rows: likedRuntimeCategories } = await pool.query(query, [userId]);
+
+        return response.json({
+            success: true,
+            data: likedRuntimeCategories
+        });
+
+    } catch (error) {
+        console.error("Error fetching liked runtime categories:", error);
+        return response.status(500).json({
+            success: false, message: "Internal server error"
+        });
+    }
+};
+
+const dislikeRuntimeCategory = async (request, response) => {
+    const userId = request.tokenPayload.id;
+    const { id: runtimeCategoryId } = request.params;
+    console.log(`Disliking runtime category ${runtimeCategoryId}...`);
+
+    try {
+        const deleteQuery = `
+        DELETE
+        FROM liked_runtime_categories_by_users
+        WHERE runtime_category_id= $1
+        AND user_id = $2
+    `;
+        await pool.query(deleteQuery, [userId, runtimeCategoryId]);
+
+        response
+            .status(200)
+            .json({
+                success: true,
+                data: {
+                    id: runtimeCategoryId
+                }
+            });
+    } catch (err) {
+        console.error(err);
+        response.status(500).json({
+            success: false, message: 'error',
+        });
+    }
+};
+
 secureUserRouter.route("/nickname")
     .get(authenticateToken, isUserExists, getUserNickname);
 secureUserRouter.route("/accountDate")
     .get(authenticateToken, isUserExists, getUserAccontDate);
+
+secureUserRouter.route("/runtimeCategories")
+    .get(getRuntimeCategories);
 
 secureUserRouter.route("/liked/genres")
     .post(authenticateToken, isUserExists, likeGenre)
@@ -408,6 +512,14 @@ secureUserRouter.route("/liked/people")
     .get(authenticateToken, isUserExists, getLikedPeople);
 secureUserRouter.route("/liked/people/:tmdb_id")
     .delete(authenticateToken, isUserExists, dislikePerson);
+
+secureUserRouter.route("/liked/runtimeCategories")
+    .post(authenticateToken, isUserExists, likeRuntimeCategory)
+    .get(authenticateToken, isUserExists, getLikedRuntimeCategories);
+secureUserRouter.route("/liked/runtimeCategories/:id")
+    .delete(authenticateToken, isUserExists, dislikeRuntimeCategory);
+
+
 
 module.exports = secureUserRouter;
 
