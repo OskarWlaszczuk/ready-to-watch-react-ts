@@ -1,4 +1,4 @@
-import { MultiSelectList } from '../../../common/components/MultiSelectList';
+import { ListOption2, MultiSelectList, MultiSelectList2, onListOptionClick } from '../../../common/components/MultiSelectList';
 import { useGenresQuery } from '../../../common/hooks/useGenresQuery';
 import { useAccessToken } from '../../../common/hooks/useAccessToken';
 import { useUserSecure } from '../../../common/hooks/useUserSecure';
@@ -8,7 +8,7 @@ import SearchTmdbPanel, { SimplefiedEntity } from '../../../common/components/Se
 import { ListOption, ListOptions } from '../../../common/components/MultiSelectList/styled';
 import { PersonListItem } from '../../../common/types/TmdbTypes/mediaListItem.types';
 
-type EntityApiResource = "collections" | "genres" | "people";
+type EntityApiResource = "collections" | "genres" | "people" | "runtimeCategories";
 
 const useDislikeEntity = (entityApiResource: EntityApiResource) => {
     const { accessToken } = useAccessToken();
@@ -156,6 +156,159 @@ export const LikedGenres = () => {
     );
 };
 
+const useLikeRuntimeCategory = () => {
+    const { accessToken } = useAccessToken();
+
+    const entity: EntityApiResource = "runtimeCategories";
+    const likedEntityApiPath = `liked/${entity}`;
+    const queryClient = useQueryClient();
+
+    const onLikeSuccess = ({ data }) => {
+        const likedEntity = data;
+
+        console.log(`✅ ${entity} added successfully`, likedEntity);
+
+        queryClient.setQueryData(["secureUser", likedEntityApiPath], ((likedEntities: any) => {
+            console.log(likedEntities);
+
+            return [
+                ...likedEntities,
+                likedEntity
+            ]
+        }));
+    };
+
+    const onLikeError = (error) => {
+        console.error("❌ Failed to add entity", error);
+    };
+
+    const { status, error, mutate: likeRuntimeCategory } = useMutation({
+        //@ts-ignore
+        mutationFn: async ({ id }) => {
+            const response = await secureUserApi.post(
+                likedEntityApiPath,
+                { id },
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`
+                    }
+                }
+            );
+            return response.data;
+        },
+        onSuccess: onLikeSuccess,
+        onError: onLikeError
+    });
+
+    return {
+        likeRuntimeCategory,
+        status,
+        error,
+    };
+};
+const useDislikeRuntimeCategories = () => {
+    const { accessToken } = useAccessToken();
+    const queryClient = useQueryClient();
+
+    const entity: EntityApiResource = "runtimeCategories";
+    const likedEntityApiPath = `liked/${entity}`;
+
+    const onDislikePrefferenceSuccess = ({ data }) => {
+        const dislikedEntityId = data.id;
+        queryClient.setQueryData(["secureUser", likedEntityApiPath], ((likedEntites: any) => {
+            console.log(likedEntites, dislikedEntityId);
+
+            const updatedPrefferences = likedEntites.filter(({ id }) => id !== Number(dislikedEntityId));
+            return updatedPrefferences;
+        }));
+    };
+
+    const {
+        status: dislikeEntityErrorStatus,
+        error: dislikeEntityError,
+        mutate: dislikeEntity
+    } = useMutation({
+        //@ts-ignore
+        mutationFn: async ({ id }) => {
+            try {
+                console.log(`Disliking ${entity} with id: ${id}..`);
+                const response = await secureUserApi.delete(`${likedEntityApiPath}/${id}`, {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                });
+
+                return response.data;
+            } catch (error) {
+                console.log("Error in dislike mutation:", error);
+            }
+        },
+        onSuccess: onDislikePrefferenceSuccess,
+        onError: (error) => {
+            console.error(`❌Failed to remove ${entity}`, error);
+        }
+    });
+
+    return {
+        dislikeEntityErrorStatus,
+        dislikeEntityError,
+        dislikeEntity
+    };
+};
+
+export const LikedRuntimeCategories = () => {
+    const { accessToken } = useAccessToken();
+
+    const entity: EntityApiResource = "runtimeCategories";
+    const likedEntityApiPath = `liked/${entity}`;
+
+    const { likeRuntimeCategory } = useLikeRuntimeCategory();
+    const { dislikeEntity: dislikeRuntimeCategory } = useDislikeRuntimeCategories();
+
+    const { user: runtimeCategories } = useUserSecure({ accessToken, resource: `${entity}` });
+    const { user: likedRuntimeCategories } = useUserSecure({ accessToken, resource: likedEntityApiPath });
+
+    if (!runtimeCategories) return <></>;
+
+    const isRuntimeCategoryLiked = (runtimeCategoryId: ListOption2["id"]) => (
+        likedRuntimeCategories.some(({ id }) => id === runtimeCategoryId)
+    );
+
+    const onRuntimeCategoryClick: onListOptionClick = (runtimeCategoryId) => {
+        isRuntimeCategoryLiked(runtimeCategoryId) ?
+            dislikeRuntimeCategory({ id: runtimeCategoryId }) :
+            likeRuntimeCategory({ id: runtimeCategoryId })
+    };
+
+    const runtimeCategoriesOptions: ListOption2[] = runtimeCategories.map(({
+        id,
+        name,
+        min_minutes,
+        max_minutes
+    }) => ({
+        id,
+        label: name,
+        extraContent: `${min_minutes} - ${max_minutes}`
+    }));
+
+    return (
+        <>
+            {/* <MultiSelectList
+                title={"Runtime categories"}
+                options={runtimeCategoryOptions}
+                isOptionActive={isRuntimeCategoryLiked}
+                onOptionChange={onRuntimeCategoryClick}
+            /> */}
+            <MultiSelectList2
+                title='runtime categories'
+                options={runtimeCategoriesOptions}
+                onOptionClick={onRuntimeCategoryClick}
+                isOptionActive={isRuntimeCategoryLiked}
+            />
+        </>
+    );
+};
+
 export const LikedCollections = () => {
     const { accessToken } = useAccessToken();
     const entity: EntityApiResource = "collections";
@@ -246,7 +399,7 @@ export const LikedPeople = () => {
             <div style={{ backgroundColor: "teal" }}>
                 <SearchTmdbPanel
                     searchKey="person"
-                    getResultItemProps={(person:PersonListItem) => ({
+                    getResultItemProps={(person: PersonListItem) => ({
                         onClickHandler: onPersonClick,
                         id: person.id,
                         name: person.name,
@@ -272,11 +425,11 @@ export const LikedPeople = () => {
     );
 };
 
-
 export const Preferences = () => {
     return (
         <>
             <LikedGenres />
+            <LikedRuntimeCategories />
             <LikedCollections />
             <LikedPeople />
         </>
